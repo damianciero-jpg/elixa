@@ -1,6 +1,6 @@
 {
   "name": "anchor2",
-  "main": "expo-router/entry",
+"main": "node_modules/expo/AppEntry.js",
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
@@ -11,11 +11,15 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.96.0",
     "@react-navigation/bottom-tabs": "^7.15.5",
     "@react-navigation/elements": "^2.9.10",
-    "@react-navigation/native": "^7.1.33",
+    "@react-navigation/native": "^7.2.4",
+    "@react-navigation/native-stack": "^7.15.1",
+    "cors": "^2.8.6",
     "expo": "~55.0.24",
     "expo-constants": "~55.0.16",
+    "expo-dev-client": "~55.0.34",
     "expo-device": "~55.0.17",
     "expo-font": "~55.0.7",
     "expo-glass-effect": "~55.0.11",
@@ -27,15 +31,17 @@
     "expo-symbols": "~55.0.8",
     "expo-system-ui": "~55.0.18",
     "expo-web-browser": "~55.0.16",
+    "express": "^5.2.1",
+    "firebase": "^12.13.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "0.83.6",
     "react-native-gesture-handler": "~2.30.0",
-    "react-native-worklets": "0.7.4",
     "react-native-reanimated": "4.2.1",
     "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.23.0",
-    "react-native-web": "~0.21.0"
+    "react-native-web": "~0.21.0",
+    "react-native-worklets": "0.7.4"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
