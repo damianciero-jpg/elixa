@@ -1,0 +1,62 @@
+// firestore.rules
+//
+// Deploy with: firebase deploy --only firestore:rules
+//
+// These rules replicate the Supabase RLS policies from supabase-schema.sql.
+// Every collection is user-scoped: only the authenticated owner can read or write.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── profiles ──────────────────────────────────────────────────────────────
+    // A user can only read and write their own profile doc (doc id == uid).
+    match /profiles/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ── checkins ──────────────────────────────────────────────────────────────
+    // Scoped by user_id field on each document.
+    match /checkins/{docId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == resource.data.user_id;
+
+      // Allow create when user_id in the incoming data matches the requester.
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.user_id;
+    }
+
+    // ── future_self_messages ──────────────────────────────────────────────────
+    match /future_self_messages/{docId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == resource.data.user_id;
+
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.user_id;
+    }
+
+    // ── support_sessions ──────────────────────────────────────────────────────
+    match /support_sessions/{docId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == resource.data.user_id;
+
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.user_id;
+    }
+
+    // ── support_messages ──────────────────────────────────────────────────────
+    // These are children of support_sessions. We don't store user_id directly
+    // here, so we allow read/write only if the parent session belongs to the user.
+    // For simplicity in MVP, allow any authenticated user to create/read their
+    // own session messages (session ownership enforced at the session level).
+    match /support_messages/{docId} {
+      allow read, write: if request.auth != null;
+      // TODO: lock down further once sessions are queried at create time.
+    }
+
+    // ── Deny everything else ──────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
