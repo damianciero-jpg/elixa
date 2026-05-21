@@ -227,7 +227,7 @@ function AuthScreen({ onAuth }) {
 function MainApp({ authUser }) {
   const [checkins, setCheckins] = useState([]);
   const [futureMessages, setFutureMessages] = useState([]);
-  const [progress, setProgress] = useState({ soberDays: 0, avgUrge: 0, moneySaved: 0 });
+  const [progress, setProgress] = useState({ intentionalDays: 0, avgUrge: 0, avgOverwhelm: 0 });
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // Load data on mount
@@ -261,21 +261,24 @@ function MainApp({ authUser }) {
   }, [authUser.uid]);
 
   function updateProgress(ciData) {
-    const soberDays = ciData.filter(c => !c.drank_today).length;
+    const intentionalDays = ciData.filter(c => {
+      if (c.impulse_outcome) return c.impulse_outcome !== 'gave_in';
+      return !c.drank_today;
+    }).length;
     const avgUrge = ciData.length
       ? Math.round(ciData.reduce((s, c) => s + (c.urge || 0), 0) / ciData.length)
       : 0;
-    setProgress({ soberDays, avgUrge, moneySaved: soberDays * 12 });
+    const avgOverwhelm = ciData.length
+      ? Math.round(ciData.reduce((s, c) => s + (c.metrics?.overwhelm || c.overwhelm || 0), 0) / ciData.length)
+      : 0;
+    setProgress({ intentionalDays, avgUrge, avgOverwhelm });
   }
 
-  async function addCheckin(mood, stress, urgeValue, drank) {
+  async function addCheckin(checkin) {
     const uid = authUser.uid;
     const newCI = {
       user_id: uid,
-      mood,
-      stress,
-      urge: urgeValue,
-      drank_today: drank,
+      ...checkin,
       created_at: serverTimestamp(),
     };
     const docRef = await addDoc(collection(db, 'checkins'), newCI);
@@ -343,7 +346,7 @@ function HomeScreen({ navigation }) {
         <View style={styles.cardRow}>
           <TouchableOpacity style={styles.smallCard} onPress={() => navigation.navigate('CheckIn')}>
             <Text style={styles.cardTitle}>Check In</Text>
-            <Text style={styles.cardText}>Mood, stress, urge</Text>
+            <Text style={styles.cardText}>Mood, energy, urges</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.smallCard} onPress={() => navigation.navigate('FutureSelf')}>
             <Text style={styles.cardTitle}>Future Self</Text>
@@ -354,7 +357,7 @@ function HomeScreen({ navigation }) {
         <TouchableOpacity style={styles.fullCard} onPress={() => navigation.navigate('Progress')}>
           <Text style={styles.cardTitle}>Progress</Text>
           <Text style={styles.cardText}>
-            {progress.soberDays} strong days · ${progress.moneySaved} estimated saved
+            {progress.intentionalDays} intentional days · {progress.avgUrge}/10 average urge
           </Text>
         </TouchableOpacity>
 
@@ -416,7 +419,7 @@ function EmergencyScreen({ navigation }) {
         </TouchableOpacity>
         <TouchableOpacity style={styles.modeButton} onPress={() => startMode('Motivate')}>
           <Text style={styles.modeTitle}>Remind me why</Text>
-          <Text style={styles.modeText}>Future-self messages and reasons to keep going.</Text>
+          <Text style={styles.modeText}>Future-self reminders and reasons to stay steady.</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.crisisLink} onPress={() => navigation.navigate('EmergencyResources')}>
@@ -624,8 +627,34 @@ function CheckInScreen({ navigation }) {
   const [mood, setMood] = useState(6);
   const [stress, setStress] = useState(5);
   const [urge, setUrge] = useState(4);
-  const [drank, setDrank] = useState(false);
+  const [energy, setEnergy] = useState(5);
+  const [anxiety, setAnxiety] = useState(4);
+  const [focus, setFocus] = useState(5);
+  const [loneliness, setLoneliness] = useState(3);
+  const [overwhelm, setOverwhelm] = useState(4);
+  const [confidence, setConfidence] = useState(6);
+  const [impulseOutcome, setImpulseOutcome] = useState('stayed_in_control');
+  const [triggers, setTriggers] = useState([]);
+  const [reflection, setReflection] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const impulseOptions = [
+    { key: 'gave_in', label: 'I gave into an impulse today' },
+    { key: 'stayed_in_control', label: 'I stayed in control today' },
+    { key: 'difficult', label: 'Today was difficult' },
+    { key: 'handled_urges', label: 'I handled urges well' },
+  ];
+  const triggerOptions = [
+    'Stress',
+    'Social pressure',
+    'Boredom',
+    'Loneliness',
+    'Anger',
+    'Anxiety',
+    'Habit',
+    'Conflict',
+    'Exhaustion',
+  ];
 
   const Scale = ({ label, value, setValue }) => (
     <View style={styles.scaleBox}>
@@ -642,9 +671,32 @@ function CheckInScreen({ navigation }) {
     </View>
   );
 
+  function toggleTrigger(trigger) {
+    setTriggers(current =>
+      current.includes(trigger)
+        ? current.filter(item => item !== trigger)
+        : [...current, trigger]
+    );
+  }
+
   async function handleSave() {
     setSaving(true);
-    await addCheckin(mood, stress, urge, drank);
+    await addCheckin({
+      mood,
+      stress,
+      urge,
+      metrics: {
+        energy,
+        anxiety,
+        focus,
+        loneliness,
+        overwhelm,
+        confidence,
+      },
+      impulse_outcome: impulseOutcome,
+      triggers,
+      reflection: reflection.trim(),
+    });
     setSaving(false);
     navigation.navigate('Progress');
   }
@@ -657,9 +709,57 @@ function CheckInScreen({ navigation }) {
         <Scale label="Mood" value={mood} setValue={setMood} />
         <Scale label="Stress" value={stress} setValue={setStress} />
         <Scale label="Urge" value={urge} setValue={setUrge} />
-        <TouchableOpacity style={styles.toggle} onPress={() => setDrank(!drank)}>
-          <Text style={styles.toggleText}>{drank ? 'I drank today' : 'I did not drink today'}</Text>
-        </TouchableOpacity>
+        <Scale label="Energy" value={energy} setValue={setEnergy} />
+        <Scale label="Anxiety" value={anxiety} setValue={setAnxiety} />
+        <Scale label="Focus" value={focus} setValue={setFocus} />
+        <Scale label="Loneliness" value={loneliness} setValue={setLoneliness} />
+        <Scale label="Emotional overwhelm" value={overwhelm} setValue={setOverwhelm} />
+        <Scale label="Confidence" value={confidence} setValue={setConfidence} />
+
+        <View style={styles.scaleBox}>
+          <Text style={styles.label}>How did today go?</Text>
+          <View style={styles.chipGrid}>
+            {impulseOptions.map(option => (
+              <TouchableOpacity
+                key={option.key}
+                style={[styles.choiceChip, impulseOutcome === option.key && styles.choiceChipActive]}
+                onPress={() => setImpulseOutcome(option.key)}
+              >
+                <Text style={[styles.choiceChipText, impulseOutcome === option.key && styles.choiceChipTextActive]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.scaleBox}>
+          <Text style={styles.label}>Triggers</Text>
+          <View style={styles.chipGrid}>
+            {triggerOptions.map(trigger => {
+              const selected = triggers.includes(trigger);
+              return (
+                <TouchableOpacity
+                  key={trigger}
+                  style={[styles.triggerChip, selected && styles.triggerChipActive]}
+                  onPress={() => toggleTrigger(trigger)}
+                >
+                  <Text style={[styles.triggerChipText, selected && styles.triggerChipTextActive]}>{trigger}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <TextInput
+          style={styles.reflectionInput}
+          multiline
+          placeholder="What challenged you most today?"
+          placeholderTextColor="#8C96B3"
+          value={reflection}
+          onChangeText={setReflection}
+        />
+
         <TouchableOpacity
           style={[styles.primaryButton, saving && { opacity: 0.6 }]}
           onPress={handleSave}
@@ -693,7 +793,7 @@ function FutureSelfScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <BackButton navigation={navigation} />
-        <Header title="Future Self" subtitle="Save reminders from the version of you that wants better." />
+        <Header title="Future Self" subtitle="Save reminders from the version of you that feels steady." />
         <TextInput
           style={styles.bigInput}
           multiline
@@ -726,20 +826,46 @@ function FutureSelfScreen({ navigation }) {
 function ProgressScreen({ navigation }) {
   const { progress, checkins } = useContext(AppContext);
 
+  function outcomeLabel(checkin) {
+    if (checkin.impulse_outcome === 'gave_in') return 'Impulse was hard to resist';
+    if (checkin.impulse_outcome === 'difficult') return 'Difficult day';
+    if (checkin.impulse_outcome === 'handled_urges') return 'Handled urges well';
+    if (checkin.impulse_outcome === 'stayed_in_control') return 'Stayed in control';
+    return checkin.drank_today ? 'Impulse was hard to resist' : 'Stayed in control';
+  }
+
+  function checkinSummary(checkin) {
+    const metrics = checkin.metrics || {};
+    const parts = [
+      `Mood ${checkin.mood || 0}/10`,
+      `Stress ${checkin.stress || 0}/10`,
+      `Urge ${checkin.urge || 0}/10`,
+    ];
+
+    if (metrics.energy) parts.push(`Energy ${metrics.energy}/10`);
+    if (metrics.anxiety) parts.push(`Anxiety ${metrics.anxiety}/10`);
+    if (metrics.focus) parts.push(`Focus ${metrics.focus}/10`);
+    if (metrics.loneliness) parts.push(`Loneliness ${metrics.loneliness}/10`);
+    if (metrics.overwhelm) parts.push(`Overwhelm ${metrics.overwhelm}/10`);
+    if (metrics.confidence) parts.push(`Confidence ${metrics.confidence}/10`);
+
+    return parts.join(' · ');
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <BackButton navigation={navigation} />
-        <Header title="Progress" subtitle="Small wins count. The goal is momentum, not perfection." />
+        <Header title="Progress" subtitle="Patterns, steadiness, and small moments of control." />
 
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{progress.soberDays}</Text>
-            <Text style={styles.statLabel}>Strong days</Text>
+            <Text style={styles.statNumber}>{progress.intentionalDays}</Text>
+            <Text style={styles.statLabel}>Intentional days</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>${progress.moneySaved}</Text>
-            <Text style={styles.statLabel}>Estimated saved</Text>
+            <Text style={styles.statNumber}>{progress.avgOverwhelm}/10</Text>
+            <Text style={styles.statLabel}>Avg overwhelm</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{progress.avgUrge}/10</Text>
@@ -750,9 +876,13 @@ function ProgressScreen({ navigation }) {
         {checkins.map((c, idx) => (
           <View key={c.id || idx} style={styles.fullCard}>
             <Text style={styles.cardTitle}>Check-in #{checkins.length - idx}</Text>
-            <Text style={styles.cardText}>
-              Mood {c.mood}/10 · Stress {c.stress}/10 · Urge {c.urge}/10 · {c.drank_today ? 'Reset day' : 'No drinking'}
-            </Text>
+            <Text style={styles.cardText}>{checkinSummary(c)} · {outcomeLabel(c)}</Text>
+            {Array.isArray(c.triggers) && c.triggers.length > 0 ? (
+              <Text style={[styles.cardText, { marginTop: 8 }]}>Triggers: {c.triggers.join(', ')}</Text>
+            ) : null}
+            {c.reflection ? (
+              <Text style={[styles.cardText, { marginTop: 8 }]}>Reflection: {c.reflection}</Text>
+            ) : null}
           </View>
         ))}
       </ScrollView>
@@ -771,7 +901,7 @@ function SafetyScreen({ navigation }) {
           <Text style={styles.cardTitle}>Important</Text>
           <Text style={styles.cardText}>
             If someone is in immediate danger, contact emergency services or a trusted adult now.
-            For alcohol dependence, sudden withdrawal can be dangerous — medical guidance is strongly recommended.
+            If a habit, substance, or behavior feels hard to stop safely, medical or professional guidance is strongly recommended.
           </Text>
         </View>
         <View style={styles.fullCard}>
@@ -849,8 +979,8 @@ function EmergencyResourcesScreen({ navigation }) {
         <View style={[styles.fullCard, { marginTop: 8 }]}>
           <Text style={styles.cardTitle}>Medical note</Text>
           <Text style={styles.cardText}>
-            Sudden alcohol withdrawal can cause seizures. If you or someone else has been drinking
-            heavily and is shaking, confused, or having tremors, seek emergency care immediately.
+            Sudden withdrawal or severe distress can become dangerous. If you or someone else is shaking,
+            confused, having tremors, or feels unsafe, seek emergency care immediately.
           </Text>
         </View>
       </ScrollView>
@@ -909,7 +1039,17 @@ const styles = StyleSheet.create({
   scaleBox: { backgroundColor: '#111B31', padding: 18, borderRadius: 22, marginBottom: 14 },
   toggle: { backgroundColor: '#111B31', padding: 18, borderRadius: 22, marginVertical: 8 },
   toggleText: { color: 'white', fontWeight: '800', textAlign: 'center' },
+  chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  choiceChip: { borderWidth: 1, borderColor: '#2B3654', backgroundColor: '#0D1629', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 11 },
+  choiceChipActive: { borderColor: '#85A7FF', backgroundColor: '#243C76' },
+  choiceChipText: { color: '#B8C0D4', fontWeight: '700', fontSize: 13 },
+  choiceChipTextActive: { color: 'white' },
+  triggerChip: { borderWidth: 1, borderColor: '#2B3654', backgroundColor: '#0D1629', borderRadius: 999, paddingHorizontal: 13, paddingVertical: 9 },
+  triggerChipActive: { borderColor: '#85A7FF', backgroundColor: '#1A2B55' },
+  triggerChipText: { color: '#B8C0D4', fontWeight: '700', fontSize: 13 },
+  triggerChipTextActive: { color: 'white' },
   bigInput: { backgroundColor: '#111B31', color: 'white', minHeight: 130, borderRadius: 22, padding: 18, textAlignVertical: 'top', fontSize: 16, lineHeight: 23 },
+  reflectionInput: { backgroundColor: '#111B31', color: 'white', minHeight: 105, borderRadius: 22, padding: 18, textAlignVertical: 'top', fontSize: 16, lineHeight: 23, marginBottom: 8 },
   statsGrid: { gap: 12 },
   statCard: { backgroundColor: '#111B31', borderRadius: 22, padding: 20 },
   statNumber: { color: 'white', fontSize: 32, fontWeight: '900' },
