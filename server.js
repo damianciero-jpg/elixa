@@ -1,5 +1,5 @@
 /**
- * Anchor — Backend API Server
+ * Elixa - Backend API Server
  * Node.js + Express
  *
  * Keeps your Anthropic API key off the mobile client.
@@ -24,8 +24,8 @@ app.use(cors({
   origin: process.env.ALLOWED_ORIGIN || '*', // tighten in production
 }));
 
-// ─── Anchor system prompt (from ai-system-prompt.txt, verbatim) ───────────────
-const SYSTEM_PROMPT = `You are Anchor, a calm emotional support assistant.
+// Elixa system prompt
+const SYSTEM_PROMPT = `You are Elixa, a calm emotional support assistant.
 
 Purpose:
 Help users pause during cravings, stress, pressure, urges, or difficult emotional moments.
@@ -75,8 +75,8 @@ const MODE_SUFFIXES = {
   motivate: 'The user chose Motivate mode. Lean into future-self reasoning and their own stated reasons for change.',
 };
 
-// ─── POST /api/anchor-chat ────────────────────────────────────────────────────
-app.post('/api/anchor-chat', async (req, res) => {
+// POST /api/elixa-chat
+app.post('/api/elixa-chat', async (req, res) => {
   const { messages, mode } = req.body;
 
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -120,4 +120,4 @@ app.get('/health', (_, res) => res.json({ status: 'ok' }));
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Anchor API listening on port ${PORT}`));
+app.listen(PORT, () => console.log(`Elixa API listening on port ${PORT}`));

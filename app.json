@@ -1,14 +1,18 @@
 {
   "expo": {
-    "name": "anchor2",
-    "slug": "anchor2",
+    "name": "Elixa",
+    "slug": "elixa",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "anchor2",
+    "scheme": "elixa",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.damianciero.elixa",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -39,6 +43,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "817bee78-bbca-4b4e-8350-0e6b8f9cf335"
+      }
     }
   }
 }

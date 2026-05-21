@@ -1,8 +1,8 @@
 /**
- * Anchor — React Native / Expo
+ * Elixa - React Native / Expo
  * Rebuilt with Firebase (Auth + Firestore + Storage) and Claude AI
  *
- * AI chat calls go through your backend endpoint (see api/anchor-chat.js).
+ * AI chat calls go through your backend endpoint (see api/elixa-chat.js).
  * Set EXPO_PUBLIC_API_BASE_URL in your .env to point at that server.
  */
 
@@ -71,7 +71,7 @@ const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3001'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 async function callClaudeBackend(messages, mode) {
-  const res = await fetch(`${API_BASE}/api/anchor-chat`, {
+  const res = await fetch(`${API_BASE}/api/elixa-chat`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({ messages, mode }),
@@ -99,7 +99,7 @@ function BackButton({ navigation, target = 'Home' }) {
 function Header({ title, subtitle }) {
   return (
     <View style={styles.header}>
-      <Text style={styles.logo}>Anchor</Text>
+      <Text style={styles.logo}>Elixa</Text>
       <Text style={styles.title}>{title}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
@@ -173,7 +173,7 @@ function AuthScreen({ onAuth }) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.homeContent}>
-        <Text style={styles.logoLarge}>Anchor</Text>
+        <Text style={styles.logoLarge}>Elixa</Text>
         <Text style={styles.heroText}>
           {mode === 'login' ? 'Welcome back.' : 'Create your account.'}
         </Text>
@@ -330,7 +330,7 @@ function HomeScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
       <ScrollView contentContainerStyle={styles.homeContent}>
-        <Text style={styles.logoLarge}>Anchor</Text>
+        <Text style={styles.logoLarge}>Elixa</Text>
         <Text style={styles.heroText}>Private support during difficult moments.</Text>
         <Text style={styles.heroSub}>
           A calm place to pause, breathe, and get through the next 10 minutes.
@@ -766,7 +766,7 @@ function SafetyScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <BackButton navigation={navigation} />
-        <Header title="Safety" subtitle="Anchor is supportive wellness software, not medical care." />
+        <Header title="Safety" subtitle="Elixa is supportive wellness software, not medical care." />
         <View style={styles.fullCard}>
           <Text style={styles.cardTitle}>Important</Text>
           <Text style={styles.cardText}>
