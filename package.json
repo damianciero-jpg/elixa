@@ -8,6 +8,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "build": "expo export --platform web",
+    "vercel-build": "npm run build",
     "lint": "expo lint",
     "test:e2e": "node scripts/run-e2e.js",
     "test:e2e:ui": "node scripts/run-e2e.js --ui"

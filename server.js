@@ -14,15 +14,18 @@
 const express = require('express');
 const cors    = require('cors');
 const Anthropic = require('@anthropic-ai/sdk');
+const path = require('path');
 
 const app    = express();
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const distPath = path.join(__dirname, 'dist');
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(express.json());
 app.use(cors({
   origin: process.env.ALLOWED_ORIGIN || '*', // tighten in production
 }));
+app.use(express.static(distPath));
 
 // Elixa system prompt
 const SYSTEM_PROMPT = `You are Elixa, a calm emotional support assistant.
@@ -117,6 +120,11 @@ app.post('/api/elixa-chat', async (req, res) => {
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (_, res) => res.json({ status: 'ok' }));
+
+// Serve the Expo web app for root and client-side routes.
+app.get(/^\/(?!api\/|health$).*/, (_, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
+});
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
